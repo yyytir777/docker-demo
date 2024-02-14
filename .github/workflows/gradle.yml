@@ -28,17 +28,16 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-
+    # 2. graldew 권한 부여
     - name: Run chmod to make gradlew executable
       run: chmod +x ./gradlew
-      
+
+    # 3. gradle 빌드
     - name: Build with Gradle
       uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
       with:
         arguments: build
 
-
-      
     # 4. Docker 이미지 빌드
     - name: docker image build
       run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/docker-demo .
@@ -50,6 +49,28 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-    # 5. Docker Hub 이미지 푸시
+    # 6. Docker Hub 이미지 푸시
     - name: docker Hub push
       run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/docker-demo
+
+  # push한 image를 ec2에서 pull받아 실행시키는 과정
+  run-docker-image-on-ec2:
+    needs: build-docker-image
+    runs-on: self-hosted
+
+    steps:
+      # 1. pull latest image
+      - name: docker pull
+        run: sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/docker-demo
+
+      # 2. 기존의 컨테이너 중지
+      - name: docker stop container
+        run: sudo docker stop $(sudo docker ps -q) 2>/dev/null || true
+
+      # 3. 최신 이미지 컨테이너화 -> 실행
+      - name: docker run new container
+        run: sudo docker run --name docker-demo --rm -d -p 8080:8080 $${{ secrets.DOCKERHUB_USERNAME }}/docker-demo
+
+      # 4. 미사용 이미지 정리
+      - name: delete old docker image
+        run: sudo docker system prune -f
