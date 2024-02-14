@@ -69,7 +69,7 @@ jobs:
 
       # 3. 최신 이미지 컨테이너화 -> 실행
       - name: docker run new container
-        run: sudo docker run --name docker-demo --rm -d -p 8080:8080 $${{ secrets.DOCKERHUB_USERNAME }}/docker-demo
+        run: sudo docker run --name docker-demo --rm -d -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/docker-demo
 
       # 4. 미사용 이미지 정리
       - name: delete old docker image
